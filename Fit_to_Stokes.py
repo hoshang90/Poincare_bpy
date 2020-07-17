@@ -1,5 +1,6 @@
 import bpy
 import sys
+import bmesh
 import numpy as np
 from scipy import optimize 
 # to install package in python blender we need to go to python console
@@ -236,13 +237,53 @@ def make_RHP_LHP(x=0,y=0,z=0,R_major=0.2,R_minor=0.01,Handness='right'):
         mesh.materials.append(mat_blue)
         bpy.context.object.location[2] = -1.4
 
+def Make_curves(x1=x1, y1=y1, z1=z1, x2=x2, y2=y2,z2=z2,psi=psi_rad,data=data,curve_radius=0.11):
+    dx = x2 - x1
+    dy = y2 - y1
+    dz = z2 - z1    
+    dist = np.sqrt(dx**2 + dy**2 + dz**2)
+    phi = np.arctan2(dy, dx) 
+    theta = np.arccos(dz/dist)
+    bpy.context.scene.cursor.rotation_euler[1] = theta
+    bpy.context.scene.cursor.rotation_euler[2] = phi
+    for i in range(len(data[:,0])):
+        for j in np.arange(0,psi,psi/30):
+            #Create the mesh
+            bpy.ops.object.add(type='MESH')
+            #Get the object
+            obj = bpy.context.object
+            #Get the mesh data
+            mesh = obj.data
+            #Create a bmesh instance in order to add data (vertices and faces) to the mesh
+            bm = bmesh.new()
+            #Create the vertices
+            #[x,y,z]
+            bm.verts.new([data[i,0],data[i,1],data[i,2]])
+            #Add a face with all the vertices (the vertices order matters here)
+            #bm.faces.new(bm.verts)
+            #Updates to Blender
+            bm.to_mesh(mesh)
+            mesh.update()
+            bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='MEDIAN')
+            bpy.ops.object.origin_set(type='ORIGIN_CURSOR', center='MEDIAN')
+            bpy.ops.transform.rotate(value=j, orient_axis='Z', orient_type='CURSOR')
+    #change it to bezier curve and make it 3d
+    #bpy.ops.object.convert(target='CURVE')
+    #obj = bpy.context.object
+    #obj.data.dimensions = '3D'
+    #obj.data.fill_mode = 'FULL'
+    #radius of the curve
+    #obj.data.bevel_depth =0.11
+    #obj.data.bevel_resolution = 20 #resolution of the object
 
 rotate_with_cursor() # to rotate the cusor and rotate the torus 
 cylinder_between() #to create a Cylinder between the eigen modes
-#line_between() #to create a line between the eigen modes
+##line_between() #to create a line between the eigen modes
 make_input_ouput_sphere()
-make_earth_sphere()
-make_3d_poincare()
-make_RHP_LHP(x=0,y=0,z=0,Handness='left')
-make_RHP_LHP(x=0,y=0,z=0,Handness='right')
+#make_earth_sphere()
+#make_3d_poincare()
+#make_RHP_LHP(x=0,y=0,z=0,Handness='left')
+#make_RHP_LHP(x=0,y=0,z=0,Handness='right')
+
+Make_curves()
 
