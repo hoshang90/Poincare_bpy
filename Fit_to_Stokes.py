@@ -9,8 +9,8 @@ from scipy import optimize
 # then run .\bin\python.exe -m ensurepip; then .\bin\python.exe -m pip install --upgrade pip
 # then run .\bin\python.exe -m pip install module name such as scipy 
 
-#data=np.loadtxt("C:\\Users\\Home\\Google Drive\\blender\\blender_python\\Stokes")#for windows
-data=np.loadtxt("/home/hoshang/Stamp_sample_guiding/blender/Stokes")#for linux
+data=np.loadtxt("C:\\Users\\Home\\Google Drive\\blender\\blender_python\\Stokes")#for windows
+#data=np.loadtxt("/home/hoshang/Stamp_sample_guiding/blender/Stokes")#for linux
 
 # param=angle mode propre, angle rotation, angle tilt
 def rot_diff(param,vstokes):
@@ -71,7 +71,7 @@ def line_between(x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2, r=Line_radius):
 def cylinder_between(x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,\
         r=Cylinder_radius,r_cone=Cone_radius,d_cone=Cone_depth,\
         color='red',Rot_axis_x=0,Rot_axis_y=0,Rot_axis_z=0\
-        ,x_angle=0,y_angle=0,z_angle=0,Rot_reset=0):
+        ,x_angle=0,y_angle=0,z_angle=0,Rot_reset=0,Name="Eigenmode_arrow"):
     arrow_mat=bpy.data.materials.new("arrow_material")#create the material and point to it
     if color=='red':
         arrow_mat.diffuse_color = (1, 0, 0, 1)#make the materials red
@@ -115,6 +115,7 @@ def cylinder_between(x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,\
         bpy.context.object.rotation_euler[1] = y_angle
     elif Rot_axis_z==1:
         bpy.context.object.rotation_euler[2] = z_angle
+    bpy.context.object.name=Name
 
 def rotate_with_cursor(x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,psi=psi_rad,data=data,calculated_sphere_radius=0.02,input_torus_radius=0.01, calc_torus_radius=0.01):
     dx = x2 - x1
@@ -137,7 +138,7 @@ def rotate_with_cursor(x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,psi=psi_rad,data
     mesh = bpy.context.object.data
     mesh.materials.clear()#clear other materials linked to the objects
     mesh.materials.append(calc_torus_mat)
-
+    bpy.context.object.name="Output_torus"
     calc_mat=bpy.data.materials.new("calculated_polarization")#create the input material and point to it
     calc_mat.diffuse_color = (0, 0, 0, 1)#make the materials blue
     for i in range(len(data[:,0])):
@@ -148,7 +149,12 @@ def rotate_with_cursor(x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,psi=psi_rad,data
         mesh = bpy.context.object.data
         mesh.materials.clear()#clear other materials linked to the objects
         mesh.materials.append(calc_mat)
-        
+        bpy.context.object.name="Calc_spheres"+str(i)
+    for i in range(len(data[:,0])):
+        bpy.data.objects["Calc_spheres"+str(i)].select_set(True)
+    bpy.ops.object.join()
+    bpy.context.object.name="cal_spheres"    
+
 def make_input_ouput_sphere(data=data,input_radius=0.03,output_radius=0.03,psi=psi_rad, calc_torus_radius=0.01):
     mat_input=bpy.data.materials.new("input_polarization")#create the input material and point to it
     mat_input.diffuse_color = (0, 0.00333301, 0.8, 1)#make the materials blue
@@ -163,7 +169,7 @@ def make_input_ouput_sphere(data=data,input_radius=0.03,output_radius=0.03,psi=p
     mesh = bpy.context.object.data
     mesh.materials.clear()#clear other materials linked to the objects
     mesh.materials.append(mat_torus_input)
-
+    bpy.context.object.name="Input_torus"
     #bpy.ops.mesh.primitive_uv_sphere_add(radius=1,segments=100, ring_count=100,location=(0, 0, 0))
     for i in range(len(data[:,0])):
         ##### create input polarizations with small spheres
@@ -171,40 +177,51 @@ def make_input_ouput_sphere(data=data,input_radius=0.03,output_radius=0.03,psi=p
         mesh = bpy.context.object.data
         mesh.materials.clear()#clear other materials linked to the objects
         mesh.materials.append(mat_input)
+        bpy.context.object.name="Input_sphere"+str(i)
         ###### create output polarization with small spheres
         bpy.ops.mesh.primitive_uv_sphere_add(radius=output_radius,location=(data[i,4], data[i,5], data[i,6]),segments=20, ring_count=20)
         mesh = bpy.context.object.data
         mesh.materials.clear()
         mesh.materials.append(mat_output)  
+        bpy.context.object.name="Output_sphere"+str(i) 
+    bpy.ops.object.select_all(action='DESELECT')
+    for i in range(len(data[:,0])):
+        bpy.data.objects["Input_sphere"+str(i)].select_set(True)
+        bpy.data.objects["Output_sphere"+str(i)].select_set(True)
+    bpy.ops.object.join()
+    bpy.context.object.name="Input_Out_spheres"
 def make_earth_sphere(sphere_r=2,arrows_r=0.01): 
     mat = bpy.data.materials.new("earth")
     mat.use_nodes = True
     bsdf = mat.node_tree.nodes["Principled BSDF"]
     texImage = mat.node_tree.nodes.new('ShaderNodeTexImage')
-    texImage.image = bpy.data.images.load("/home/hoshang/Stamp_sample_guiding/blender/2k_earth_daymap.jpg")
+    texImage.image = bpy.data.images.load("C:\\Users\\Home\\Google Drive\\blender\\blender_python\\2k_earth_daymap.jpg")
+    #texImage.image = bpy.data.images.load("/home/hoshang/Stamp_sample_guiding/blender/2k_earth_daymap.jpg")
     mat.node_tree.links.new(bsdf.inputs['Base Color'], texImage.outputs['Color'])
     bpy.ops.mesh.primitive_uv_sphere_add(radius=1,location=(0,0,0),segments=50, ring_count=50)
     bpy.ops.object.modifier_add(type='SUBSURF')
     bpy.context.object.modifiers["Subdivision"].levels = 4
+    bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Subdivision")
     mesh = bpy.context.object.data
     mesh.materials.clear()
-    mesh.materials.append(mat) 
+    mesh.materials.append(mat)
+    bpy.context.object.name="Earth_sphere"
 def make_3d_poincare():
     Cone_radius=0.03;Cone_depth=0.04;p=np.pi
     cylinder_between(x1=1.5, y1=0, z1=0, x2=-1.5, y2=0, z2=0,r=Cylinder_radius\
-            ,r_cone=Cone_radius,d_cone=Cone_depth,color='black')#X_axis S1
+            ,r_cone=Cone_radius,d_cone=Cone_depth,color='black',Name="S1_axis")#X_axis S1
     cylinder_between(x1=1.3, y1=0, z1=0, x2=1.5, y2=0,z2=0,r=Cylinder_radius\
-                    ,r_cone=Cone_radius,d_cone=Cone_depth,color='red',Rot_reset=1,Rot_axis_x=1,x_angle=p/2)#s1=1TE
+                    ,r_cone=Cone_radius,d_cone=Cone_depth,color='red',Rot_reset=1,Rot_axis_x=1,x_angle=p/2,Name="TE")#s1=1TE
     cylinder_between(x1=-1.3, y1=0, z1=0, x2=-1.5, y2=0,z2=0,r=Cylinder_radius\
-                    ,r_cone=Cone_radius,d_cone=Cone_depth,color='blue',Rot_reset=1)#s1=-1TM
+                    ,r_cone=Cone_radius,d_cone=Cone_depth,color='blue',Rot_reset=1,Name="TM")#s1=-1TM
     cylinder_between(x1=0, y1=1.5, z1=0, x2=0, y2=-1.5, z2=0,r=Cylinder_radius\
-            ,r_cone=Cone_radius,d_cone=Cone_depth,color='black')#Y_axis S2
+            ,r_cone=Cone_radius,d_cone=Cone_depth,color='black',Name="S2_axis")#Y_axis S2
     cylinder_between(x1=0, y1=1.3, z1=0, x2=0, y2=1.5,z2=0,r=Cylinder_radius\
-                    ,r_cone=Cone_radius,d_cone=Cone_depth,color='red',Rot_reset=1,Rot_axis_y=1,y_angle=-p/4)#S2=1>+45
+                    ,r_cone=Cone_radius,d_cone=Cone_depth,color='red',Rot_reset=1,Rot_axis_y=1,y_angle=-p/4,Name="S2+45")#S2=1>+45
     cylinder_between(x1=0, y1=-1.3, z1=0, x2=0, y2=-1.5,z2=0,r=Cylinder_radius\
-                    ,r_cone=Cone_radius,d_cone=Cone_depth,color='blue',Rot_reset=1,Rot_axis_y=1,y_angle=p/4)#S2=-1>-45
+                    ,r_cone=Cone_radius,d_cone=Cone_depth,color='blue',Rot_reset=1,Rot_axis_y=1,y_angle=p/4,Name="S2-45")#S2=-1>-45
     cylinder_between(x1=0, y1=0, z1=1.5, x2=0, y2=0, z2=-1.5,r=Cylinder_radius\
-            ,r_cone=Cone_radius,d_cone=Cone_depth,color='black')#Z_axis S3
+            ,r_cone=Cone_radius,d_cone=Cone_depth,color='black',Name="S3_axis")#Z_axis S3
 def make_RHP_LHP(x=0,y=0,z=0,R_major=0.2,R_minor=0.01,Handness='right'):
     mat_red=bpy.data.materials.new("mat_red")
     mat_red.diffuse_color = (1, 0, 0, 1)
@@ -226,6 +243,7 @@ def make_RHP_LHP(x=0,y=0,z=0,R_major=0.2,R_minor=0.01,Handness='right'):
         mesh.materials.clear()#clear other materials linked to the objects
         mesh.materials.append(mat_red)
         bpy.context.object.location[2] = 1.4
+        bpy.context.object.name="RHC_polarization"
     elif Handness=='left':
         bpy.ops.mesh.primitive_cone_add(radius1=0.03, radius2=0, depth=0.06, enter_editmode=False, \
         align='WORLD', location=(R_major, 0, 0), rotation=(-np.pi/2, 0, 0))
@@ -236,6 +254,7 @@ def make_RHP_LHP(x=0,y=0,z=0,R_major=0.2,R_minor=0.01,Handness='right'):
         mesh.materials.clear()#clear other materials linked to the objects
         mesh.materials.append(mat_blue)
         bpy.context.object.location[2] = -1.4
+        bpy.context.object.name="LHC_polarization"
 
 def Make_curves(x1=x1, y1=y1, z1=z1, x2=x2,y2=y2,z2=z2,psi=psi_rad,data=data,curve_radius=0.01):
     dx = x2 - x1
@@ -288,15 +307,57 @@ def Make_curves(x1=x1, y1=y1, z1=z1, x2=x2,y2=y2,z2=z2,psi=psi_rad,data=data,cur
         mesh = bpy.context.object.data
         mesh.materials.clear()
         mesh.materials.append(curves_mat)
+
+def Make_curves_withObj(x1=x1, y1=y1, z1=z1, x2=x2,y2=y2,z2=z2,psi=psi_rad,data=data,curve_radius=0.01,obj_num=50, cone_arrow=False):
+    dx = x2 - x1
+    dy = y2 - y1
+    dz = z2 - z1    
+    dist = np.sqrt(dx**2 + dy**2 + dz**2)
+    phi = np.arctan2(dy, dx) 
+    theta = np.arccos(dz/dist)
+    bpy.context.scene.cursor.rotation_euler[1] = theta
+    bpy.context.scene.cursor.rotation_euler[2] = phi
+    curves_mat=bpy.data.materials.new("curve_material")
+    curves_mat.diffuse_color = (0, 1, 1, 1)#white   
+    for i in range(len(data[:,0])):
+        for j in np.arange(0,psi,psi/obj_num):
+            bpy.ops.mesh.primitive_cube_add(size=curve_radius, location=(data[i,0],data[i,1],data[i,2]))
+            bpy.ops.object.origin_set(type='ORIGIN_CURSOR', center='MEDIAN')
+            bpy.ops.transform.rotate(value=j, orient_axis='Z', orient_type='CURSOR')
+            bpy.context.object.name=str(i+j)
+            if cone_arrow==True and j==psi/(obj_num/2):
+                bpy.ops.mesh.primitive_cone_add(radius1=curve_radius*3, depth=curve_radius*4, location=(data[i,0],data[i,1],data[i,2]))
+                if data[i,0] >0:
+                    bpy.ops.transform.rotate(value=-np.pi/2, orient_axis='X', orient_type='GLOBAL')
+                else:
+                    bpy.ops.transform.rotate(value=np.pi/2, orient_axis='X', orient_type='GLOBAL')
+                bpy.ops.object.origin_set(type='ORIGIN_CURSOR', center='MEDIAN')
+                bpy.ops.transform.rotate(value=psi/2, orient_axis='Z', orient_type='CURSOR')
+                bpy.context.object.name="cone"+str(i)
+        for j in np.arange(0,psi,psi/obj_num):
+            bpy.data.objects[str(i+j)].select_set(True)
+            if cone_arrow==True and j==psi/(obj_num/2):
+                bpy.data.objects["cone"+str(i)].select_set(True)
+        bpy.ops.object.join()
+        bpy.context.object.name="input_cal_curve"+str(i)
+        mesh = bpy.context.object.data
+        mesh.materials.clear()
+        mesh.materials.append(curves_mat)
+        bpy.ops.object.select_all(action='DESELECT')
+    for i in range(len(data[:,0])):
+        bpy.data.objects["input_cal_curve"+str(i)].select_set(True)
+    bpy.ops.object.join()
+    bpy.context.object.name="input_cal_curves"
+    bpy.ops.object.select_all(action='DESELECT')
  
 rotate_with_cursor() # to rotate the cusor and rotate the torus 
 cylinder_between() #to create a Cylinder between the eigen modes
-##line_between() #to create a line between the eigen modes
+#line_between() #to create a line between the eigen modes
 make_input_ouput_sphere()
 make_earth_sphere()
 make_3d_poincare()
 make_RHP_LHP(x=0,y=0,z=0,Handness='left')
 make_RHP_LHP(x=0,y=0,z=0,Handness='right')
-
-Make_curves()
+#Make_curves()
+Make_curves_withObj(cone_arrow=False)
 
