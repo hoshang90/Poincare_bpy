@@ -349,7 +349,30 @@ def Make_curves_withObj(x1=x1, y1=y1, z1=z1, x2=x2,y2=y2,z2=z2,psi=psi_rad,data=
     bpy.ops.object.join()
     bpy.context.object.name="input_cal_curves"
     bpy.ops.object.select_all(action='DESELECT')
- 
+
+def Rotate_around(number_of_frames=200):
+    bpy.ops.object.empty_add(type='PLAIN_AXES', location=(0, 0, 0))
+    bpy.context.object.name="Base_for_rotate"
+    bpy.ops.object.select_all(action='DESELECT')
+    bpy.data.objects["Camera"].select_set(True)
+    bpy.data.objects["Base_for_rotate"].select_set(True)
+    bpy.ops.object.parent_set(type='OBJECT', keep_transform=False)
+    bpy.ops.object.select_all(action='DESELECT')
+    bpy.context.scene.frame_end = number_of_frames
+    bpy.context.scene.frame_current = 1
+    bpy.data.objects["Base_for_rotate"].select_set(True)
+    bpy.ops.anim.keyframe_insert_menu(type='LocRotScale')
+    bpy.context.scene.frame_current = int(number_of_frames/1.7)
+    bpy.ops.transform.rotate(value=np.pi, orient_axis='Z', orient_type='GLOBAL')
+    bpy.ops.anim.keyframe_insert_menu(type='LocRotScale')
+    bpy.context.scene.frame_current =int(number_of_frames/1.3) 
+    bpy.ops.transform.rotate(value=np.pi*1.5, orient_axis='Z', orient_type='GLOBAL')
+    bpy.ops.anim.keyframe_insert_menu(type='LocRotScale')
+    bpy.context.scene.frame_current = number_of_frames
+    bpy.ops.transform.rotate(value=np.pi*1.5, orient_axis='Z', orient_type='GLOBAL')
+    bpy.ops.anim.keyframe_insert_menu(type='LocRotScale')
+    bpy.ops.object.select_all(action='DESELECT')
+
 rotate_with_cursor() # to rotate the cusor and rotate the torus 
 cylinder_between() #to create a Cylinder between the eigen modes
 #line_between() #to create a line between the eigen modes
@@ -360,4 +383,4 @@ make_RHP_LHP(x=0,y=0,z=0,Handness='left')
 make_RHP_LHP(x=0,y=0,z=0,Handness='right')
 #Make_curves()
 Make_curves_withObj(cone_arrow=False)
-
+#Rotate_around()
