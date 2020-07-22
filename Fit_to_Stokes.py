@@ -117,7 +117,9 @@ def cylinder_between(x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,\
         bpy.context.object.rotation_euler[2] = z_angle
     bpy.context.object.name=Name
 
-def rotate_with_cursor(x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,psi=psi_rad,data=data,calculated_sphere_radius=0.02,input_torus_radius=0.01, calc_torus_radius=0.01):
+def rotate_with_cursor(x1=x1, y1=y1, z1=z1, x2=x2, y2=y2,
+        z2=z2,psi=psi_rad,data=data,calculated_sphere_radius=0.02,input_torus_radius=0.01,
+        calc_torus_radius=0.01,Anime=False,Cal_sph_anim=False,number_of_frames=200):
     dx = x2 - x1
     dy = y2 - y1
     dz = z2 - z1    
@@ -134,26 +136,51 @@ def rotate_with_cursor(x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,psi=psi_rad,data
     bpy.context.object.modifiers["Subdivision"].levels = 3
     bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Subdivision")
     bpy.ops.transform.rotate(value=np.pi/2, orient_axis='X')
-    bpy.ops.transform.rotate(value=psi, orient_axis='Z', orient_type='CURSOR')
     mesh = bpy.context.object.data
     mesh.materials.clear()#clear other materials linked to the objects
     mesh.materials.append(calc_torus_mat)
     bpy.context.object.name="Output_torus"
+    if Anime==True:
+        bpy.ops.object.select_all(action='DESELECT') 
+        bpy.context.scene.frame_end = number_of_frames
+        bpy.context.scene.frame_current = 1
+        bpy.data.objects["Output_torus"].select_set(True)
+        bpy.ops.anim.keyframe_insert_menu(type='LocRotScale')
+        bpy.context.scene.frame_current = number_of_frames
+        bpy.ops.transform.rotate(value=psi, orient_axis='Z', orient_type='CURSOR')
+        bpy.ops.anim.keyframe_insert_menu(type='LocRotScale')
+        bpy.ops.object.select_all(action='DESELECT') 
+    else:
+        bpy.ops.transform.rotate(value=psi, orient_axis='Z', orient_type='CURSOR')
     calc_mat=bpy.data.materials.new("calculated_polarization")#create the input material and point to it
     calc_mat.diffuse_color = (0, 0, 0, 1)#make the materials blue
     for i in range(len(data[:,0])):
         ##### create calculated polarizations with small spheres
         bpy.ops.mesh.primitive_uv_sphere_add(radius=calculated_sphere_radius,location=(data[i,0], data[i,1], data[i,2]),segments=20, ring_count=20)
-        bpy.ops.object.origin_set(type='ORIGIN_CURSOR', center='MEDIAN')#change origin of the spheres otherwise they will not rotate        
-        bpy.ops.transform.rotate(value=psi, orient_axis='Z', orient_type='CURSOR')
+        if Cal_sph_anim!=True:
+            bpy.ops.object.origin_set(type='ORIGIN_CURSOR', center='MEDIAN')#change origin of the spheres otherwise they will not rotate        
+            bpy.ops.transform.rotate(value=psi, orient_axis='Z', orient_type='CURSOR')
         mesh = bpy.context.object.data
         mesh.materials.clear()#clear other materials linked to the objects
         mesh.materials.append(calc_mat)
         bpy.context.object.name="Calc_spheres"+str(i)
-    for i in range(len(data[:,0])):
-        bpy.data.objects["Calc_spheres"+str(i)].select_set(True)
-    bpy.ops.object.join()
-    bpy.context.object.name="cal_spheres"    
+    if Cal_sph_anim==True:
+        bpy.ops.object.select_all(action='DESELECT') 
+        bpy.context.scene.frame_end = number_of_frames
+        for i in range(len(data[:,0])):
+            bpy.ops.object.select_all(action='DESELECT') 
+            bpy.context.scene.frame_current = 1        
+            bpy.data.objects["Calc_spheres"+str(i)].select_set(True)
+            bpy.ops.object.origin_set(type='ORIGIN_CURSOR', center='MEDIAN')#change origin of the spheres otherwise they will not rotate        
+            bpy.ops.anim.keyframe_insert_menu(type='LocRotScale')
+            bpy.context.scene.frame_current = number_of_frames
+            bpy.ops.transform.rotate(value=psi, orient_axis='Z', orient_type='CURSOR')
+            bpy.ops.anim.keyframe_insert_menu(type='LocRotScale')
+    else:
+        for i in range(len(data[:,0])):
+            bpy.data.objects["Calc_spheres"+str(i)].select_set(True)
+        bpy.ops.object.join()
+        bpy.context.object.name="cal_spheres"    
 
 def make_input_ouput_sphere(data=data,input_radius=0.03,output_radius=0.03,psi=psi_rad, calc_torus_radius=0.01):
     mat_input=bpy.data.materials.new("input_polarization")#create the input material and point to it
@@ -373,7 +400,29 @@ def Rotate_around(number_of_frames=200):
     bpy.ops.anim.keyframe_insert_menu(type='LocRotScale')
     bpy.ops.object.select_all(action='DESELECT')
 
-rotate_with_cursor() # to rotate the cusor and rotate the torus 
+def Pol_rotation_anime(x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,psi=psi_rad,number_of_frames=200):
+    dx = x2 - x1
+    dy = y2 - y1
+    dz = z2 - z1    
+    dist = np.sqrt(dx**2 + dy**2 + dz**2)
+    phi = np.arctan2(dy, dx) 
+    theta = np.arccos(dz/dist)
+    bpy.context.scene.cursor.rotation_euler[1] = theta
+    bpy.context.scene.cursor.rotation_euler[2] = phi
+    bpy.ops.object.select_all(action='DESELECT') 
+    bpy.context.scene.frame_end = number_of_frames
+    bpy.context.scene.frame_current = 1
+    bpy.data.objects["Output_torus"].select_set(True)
+    bpy.ops.object.origin_set(type='ORIGIN_CURSOR', center='MEDIAN')       
+    bpy.data.objects["cal_spheres"].select_set(True)
+    bpy.ops.object.origin_set(type='ORIGIN_CURSOR', center='MEDIAN')
+    bpy.ops.transform.rotate(value=-psi, orient_axis='Z', orient_type='CURSOR')
+    bpy.ops.anim.keyframe_insert_menu(type='LocRotScale')
+    bpy.context.scene.frame_current = number_of_frames
+    bpy.ops.transform.rotate(value=psi, orient_axis='Z', orient_type='CURSOR')
+    bpy.ops.anim.keyframe_insert_menu(type='LocRotScale')
+ 
+rotate_with_cursor(Anime=True) # to rotate the cusor and rotate the torus 
 cylinder_between() #to create a Cylinder between the eigen modes
 #line_between() #to create a line between the eigen modes
 make_input_ouput_sphere()
@@ -384,3 +433,4 @@ make_RHP_LHP(x=0,y=0,z=0,Handness='right')
 #Make_curves()
 Make_curves_withObj(cone_arrow=False)
 #Rotate_around()
+#Pol_rotation_anime()
